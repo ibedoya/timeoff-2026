@@ -9,20 +9,21 @@
 <body>
   <header class="topbar">
     <div class="brand">
-      <div class="logo">⛱️</div>
+      <div class="logo">🗓️</div>
       <div>
-        <h1>Registro de Vacaciones y Permisos</h1>
-        <p>Calendario 2026 · Prototipo sin backend (localStorage)</p>
+        <h1>Vacaciones / Días libres · 2026</h1>
+        <p>Persistencia con Netlify Blobs · Sin base de datos propia</p>
       </div>
     </div>
 
     <div class="top-actions">
+      <button class="btn btn-ghost" id="btnReload" title="Recargar desde el almacenamiento">Recargar</button>
       <button class="btn btn-ghost" id="btnExport" title="Descargar un JSON con los registros">Exportar JSON</button>
-      <label class="btn btn-ghost filelike" title="Cargar un JSON previamente exportado">
+      <label class="btn btn-ghost filelike" title="Cargar un JSON previamente exportado (sobrescribe)">
         Importar JSON
         <input type="file" id="fileImport" accept="application/json" />
       </label>
-      <button class="btn btn-danger" id="btnClearAll" title="Borrar todo en este navegador">Borrar todo</button>
+      <button class="btn btn-danger" id="btnClearAll" title="Borrar todo en el almacenamiento">Borrar todo</button>
     </div>
   </header>
 
@@ -67,7 +68,7 @@
           </div>
 
           <div class="row">
-            <button class="btn btn-primary" type="submit">Guardar</button>
+            <button class="btn btn-primary" type="submit" id="btnSave">Guardar</button>
             <button class="btn" type="reset">Limpiar</button>
           </div>
 
@@ -122,10 +123,8 @@
         </div>
 
         <div class="mini">
-          <h3>Resumen rápido 2026</h3>
-          <p class="muted">
-            Cambia de mes para ver KPIs sin “entrar” a cada mes: el resumen aparece aquí automáticamente.
-          </p>
+          <h3>Estado de sincronización</h3>
+          <p class="muted" id="syncStatus">—</p>
         </div>
       </section>
     </aside>
@@ -171,7 +170,7 @@
   </main>
 
   <footer class="footer">
-    <span>Prototipo · Datos guardados en tu navegador (localStorage)</span>
+    <span>Datos persistidos en Netlify Blobs (compartidos por todos los usuarios del sitio)</span>
   </footer>
 
   <script src="./app.js"></script>

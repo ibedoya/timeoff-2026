@@ -1,3 +1,4 @@
+/* Estilos (bonito + simple) */
 :root{
   --bg: #0b1220;
   --panel: #0f1a2e;
@@ -9,12 +10,12 @@
   --shadow: 0 16px 40px rgba(0,0,0,.35);
   --radius: 18px;
 
-  --vac: #7c3aed;     /* morado */
-  --fam: #22c55e;     /* verde */
-  --perm: #38bdf8;    /* azul */
-  --inc: #f97316;     /* naranja */
-  --otro: #eab308;    /* amarillo */
-  --multi: #f43f5e;   /* rosa */
+  --vac: #7c3aed;
+  --fam: #22c55e;
+  --perm:#38bdf8;
+  --inc: #f97316;
+  --otro:#eab308;
+  --multi:#f43f5e;
 }
 
 *{ box-sizing: border-box; }
@@ -158,9 +159,7 @@ input:focus, select:focus{
   background: linear-gradient(90deg, rgba(124,58,237,.85), rgba(56,189,248,.75));
   border-color: rgba(255,255,255,.18);
 }
-.btn-ghost{
-  background: transparent;
-}
+.btn-ghost{ background: transparent; }
 .btn-danger{
   background: rgba(244,63,94,.14);
   border-color: rgba(244,63,94,.35);
@@ -234,13 +233,8 @@ input:focus, select:focus{
   position: relative;
   overflow: hidden;
 }
-.day.out{
-  opacity: .45;
-}
-.day .num{
-  font-size: 12px;
-  color: var(--muted);
-}
+.day.out{ opacity: .45; }
+.day .num{ font-size: 12px; color: var(--muted); }
 .day .chips{
   display:flex;
   gap: 6px;

@@ -1,0 +1,13 @@
+{
+  "name": "timeoff-2026-netlify-blobs",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Registro de vacaciones/permisos 2026 (Netlify Blobs)",
+  "type": "module",
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@netlify/blobs": "^8.0.0"
+  }
+}

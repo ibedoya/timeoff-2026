@@ -1,16 +1,15 @@
-/* Prototipo: Registro de vacaciones/permisos 2026
-   - Persistencia: localStorage
-   - Vista: Calendario mensual + resumen
+/* Registro de vacaciones/permisos 2026
+   Persistencia: Netlify Functions + Netlify Blobs (sin DB propia)
 */
 
 const YEAR = 2026;
-const STORAGE_KEY = "timeoff_2026_v1";
 
 // --- UI refs
 const el = (id) => document.getElementById(id);
 
 const form = el("formTimeOff");
 const alertBox = el("formAlert");
+const syncStatus = el("syncStatus");
 
 const monthTitle = el("monthTitle");
 const monthSubtitle = el("monthSubtitle");
@@ -36,15 +35,17 @@ const listHint = el("listHint");
 const btnExport = el("btnExport");
 const fileImport = el("fileImport");
 const btnClearAll = el("btnClearAll");
+const btnReload = el("btnReload");
+const btnSave = el("btnSave");
 
 // --- State
 let state = {
   monthIndex: 0, // 0=Enero
-  entries: loadEntries(),
-  filters: {
-    name: "",
-    type: ""
-  }
+  entries: [],
+  serverRevision: null, // ETag / revision
+  lastUpdatedAt: null,
+  filters: { name: "", type: "" },
+  isSaving: false
 };
 
 // --- Utils
@@ -57,9 +58,7 @@ function isoToDate(iso){
   return new Date(y, m-1, d);
 }
 function clampTo2026(iso){
-  // Acepta solo 2026
-  if(!iso) return false;
-  return iso.startsWith(`${YEAR}-`);
+  return !!iso && iso.startsWith(`${YEAR}-`);
 }
 function monthsEs(){
   return ["Enero","Febrero","Marzo","Abril","Mayo","Junio","Julio","Agosto","Septiembre","Octubre","Noviembre","Diciembre"];
@@ -72,38 +71,39 @@ function typeKey(type){
   if(t.includes("incap")) return "inc";
   return "otro";
 }
-function typeDotClass(type){
-  return typeKey(type);
+function escapeHtml(str){
+  return String(str)
+    .replaceAll("&","&amp;")
+    .replaceAll("<","&lt;")
+    .replaceAll(">","&gt;")
+    .replaceAll('"',"&quot;")
+    .replaceAll("'","&#039;");
 }
-function safeText(s){
-  return (s ?? "").toString();
+function createId(){
+  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
 }
 
-// --- Storage
-function loadEntries(){
-  try{
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if(!raw) return [];
-    const parsed = JSON.parse(raw);
-    if(!Array.isArray(parsed)) return [];
-    // sanity normalize
-    return parsed
-      .filter(x => x && x.id && x.name && x.start && x.end && x.type)
-      .map(x => ({
-        id: x.id,
-        name: safeText(x.name).trim(),
-        start: safeText(x.start),
-        end: safeText(x.end),
-        type: safeText(x.type),
-        note: safeText(x.note || ""),
-        createdAt: x.createdAt || new Date().toISOString()
-      }));
-  }catch{
-    return [];
-  }
+// --- API (Netlify Functions)
+async function apiGet() {
+  const r = await fetch("/.netlify/functions/list");
+  if(!r.ok) throw new Error(await r.text());
+  return await r.json(); // { data, revision, updatedAt }
 }
-function saveEntries(){
-  localStorage.setItem(STORAGE_KEY, JSON.stringify(state.entries));
+
+async function apiPut(entries, expectedRevision) {
+  const r = await fetch("/.netlify/functions/save", {
+    method: "POST",
+    headers: { "content-type": "application/json" },
+    body: JSON.stringify({ entries, expectedRevision })
+  });
+  if(!r.ok) throw new Error(await r.text());
+  return await r.json(); // { ok, revision, updatedAt }
+}
+
+async function apiClear() {
+  const r = await fetch("/.netlify/functions/clear", { method: "POST" });
+  if(!r.ok) throw new Error(await r.text());
+  return await r.json();
 }
 
 // --- Date logic
@@ -111,12 +111,10 @@ function daysInMonth(year, monthIndex){
   return new Date(year, monthIndex + 1, 0).getDate();
 }
 function startWeekday(year, monthIndex){
-  // 0=Domingo ... 6=Sábado
-  return new Date(year, monthIndex, 1).getDay();
+  return new Date(year, monthIndex, 1).getDay(); // 0=Dom
 }
 function overlapsDay(entry, dayISO){
-  // inclusive range
-  return entry.start <= dayISO && dayISO <= entry.end;
+  return entry.start <= dayISO && dayISO <= entry.end; // inclusive
 }
 function overlapsMonth(entry, year, monthIndex){
   const monthStart = `${year}-${pad2(monthIndex+1)}-01`;
@@ -132,7 +130,6 @@ function approxDaysWithinMonth(entry, year, monthIndex){
   const end = e > monthEnd ? monthEnd : e;
   const ms = end - start;
   if(ms < 0) return 0;
-  // +1 inclusive
   return Math.floor(ms / (24*3600*1000)) + 1;
 }
 
@@ -140,12 +137,29 @@ function approxDaysWithinMonth(entry, year, monthIndex){
 function applyFilters(entries){
   const nameQ = state.filters.name.trim().toLowerCase();
   const typeQ = state.filters.type.trim().toLowerCase();
-
   return entries.filter(e => {
     const okName = !nameQ || e.name.toLowerCase().includes(nameQ);
     const okType = !typeQ || e.type.toLowerCase() === typeQ;
     return okName && okType;
   });
+}
+
+// --- UI helpers
+function setAlert(msg, kind="info"){
+  alertBox.textContent = msg || "";
+  alertBox.style.color = (kind === "error")
+    ? "rgba(244,63,94,.95)"
+    : "rgba(255,255,255,.72)";
+}
+
+function setSync(msg){
+  syncStatus.textContent = msg || "—";
+}
+
+function setSaving(isSaving){
+  state.isSaving = isSaving;
+  btnSave.disabled = isSaving;
+  btnSave.textContent = isSaving ? "Guardando…" : "Guardar";
 }
 
 // --- Rendering
@@ -160,7 +174,7 @@ function renderWeekdays(){
 }
 
 function renderHeader(){
-  monthTitle.textContent = `${monthsEs()[state.monthIndex]}`;
+  monthTitle.textContent = monthsEs()[state.monthIndex];
   monthSubtitle.textContent = `${YEAR}`;
 }
 
@@ -171,7 +185,6 @@ function renderCalendar(){
   const days = daysInMonth(YEAR, monthIdx);
   const firstDay = startWeekday(YEAR, monthIdx);
 
-  // previous month filler
   const prevMonthIdx = monthIdx - 1;
   const prevYear = prevMonthIdx < 0 ? YEAR - 1 : YEAR;
   const prevIdx = (prevMonthIdx + 12) % 12;
@@ -179,26 +192,19 @@ function renderCalendar(){
 
   const filtered = applyFilters(state.entries);
 
-  // 6 weeks grid (42 cells)
   for(let cell=0; cell<42; cell++){
     const dayCell = document.createElement("div");
     dayCell.className = "day";
 
-    let inMonth = true;
     let dayNum, iso;
-
     const dayOffset = cell - firstDay + 1;
+
     if(dayOffset <= 0){
-      // prev month
-      inMonth = false;
       dayNum = prevDays + dayOffset;
-      // if prev month is not 2026, we still show but no iso in 2026
-      const d = new Date(YEAR, monthIdx, dayOffset); // auto handles
+      const d = new Date(YEAR, monthIdx, dayOffset);
       iso = dateToISO(d);
       dayCell.classList.add("out");
     } else if(dayOffset > days){
-      // next month
-      inMonth = false;
       dayNum = dayOffset - days;
       const d = new Date(YEAR, monthIdx, dayOffset);
       iso = dateToISO(d);
@@ -208,20 +214,17 @@ function renderCalendar(){
       iso = `${YEAR}-${pad2(monthIdx+1)}-${pad2(dayNum)}`;
     }
 
-    // number
     const num = document.createElement("div");
     num.className = "num";
     num.textContent = dayNum;
     dayCell.appendChild(num);
 
-    // show highlights only for 2026 days
     if(clampTo2026(iso)){
       const dayEntries = filtered.filter(e => overlapsDay(e, iso));
       if(dayEntries.length){
         const chips = document.createElement("div");
         chips.className = "chips";
 
-        // show up to 2 chips to avoid clutter
         dayEntries.slice(0,2).forEach(e => {
           const chip = document.createElement("div");
           chip.className = "chip";
@@ -238,20 +241,15 @@ function renderCalendar(){
 
         dayCell.appendChild(chips);
 
-        // bar (color)
         const bar = document.createElement("div");
         bar.className = "bar";
         const uniqueTypes = new Set(dayEntries.map(e => typeKey(e.type)));
-        if(uniqueTypes.size === 1){
-          bar.classList.add([...uniqueTypes][0]);
-        }else{
-          bar.classList.add("multi");
-        }
+        bar.classList.add(uniqueTypes.size === 1 ? [...uniqueTypes][0] : "multi");
         dayCell.appendChild(bar);
 
-        // tooltip title
-        const tip = dayEntries.map(e => `${e.name} (${e.type}) ${e.start}→${e.end}${e.note?` · ${e.note}`:""}`).join("\n");
-        dayCell.title = tip;
+        dayCell.title = dayEntries
+          .map(e => `${e.name} (${e.type}) ${e.start}→${e.end}${e.note?` · ${e.note}`:""}`)
+          .join("\n");
       }
     }
 
@@ -262,10 +260,8 @@ function renderCalendar(){
 function renderMonthSummaryAndList(){
   const m = state.monthIndex;
   const filtered = applyFilters(state.entries);
-
   const monthEntries = filtered.filter(e => overlapsMonth(e, YEAR, m));
 
-  // KPIs
   const uniquePeople = new Set(monthEntries.map(e => e.name.toLowerCase().trim()));
   const daysSum = monthEntries.reduce((acc, e) => acc + approxDaysWithinMonth(e, YEAR, m), 0);
 
@@ -273,10 +269,8 @@ function renderMonthSummaryAndList(){
   kpiEntries.textContent = String(monthEntries.length);
   kpiDays.textContent = String(daysSum);
 
-  // breakdown by type (count unique people by type in month)
   const types = ["Vacaciones","Día de la familia","Permiso","Incapacidad","Otro"];
   breakdownType.innerHTML = "";
-
   types.forEach(t => {
     const entriesT = monthEntries.filter(e => e.type === t);
     const peopleT = new Set(entriesT.map(e => e.name.toLowerCase().trim()));
@@ -284,16 +278,15 @@ function renderMonthSummaryAndList(){
     row.className = "bd-row";
     row.innerHTML = `
       <div class="bd-tag">
-        <span class="dot ${typeDotClass(t)}"></span>
-        <span>${t}</span>
+        <span class="dot ${typeKey(t)}"></span>
+        <span>${escapeHtml(t)}</span>
       </div>
       <div class="muted">${peopleT.size} pers.</div>
     `;
     breakdownType.appendChild(row);
   });
 
-  // List
-  listHint.textContent = `${monthsEs()[m]} ${YEAR} · mostrando ${monthEntries.length} registro(s) (aplica filtros si quieres)`;
+  listHint.textContent = `${monthsEs()[m]} ${YEAR} · ${monthEntries.length} registro(s)`;
 
   entriesList.innerHTML = "";
   if(monthEntries.length === 0){
@@ -304,7 +297,6 @@ function renderMonthSummaryAndList(){
     return;
   }
 
-  // sort by start date
   monthEntries.sort((a,b) => a.start.localeCompare(b.start));
 
   monthEntries.forEach(e => {
@@ -312,34 +304,26 @@ function renderMonthSummaryAndList(){
     box.className = "entry";
 
     const left = document.createElement("div");
-    const title = document.createElement("div");
-    title.innerHTML = `<strong>${escapeHtml(e.name)}</strong> <span class="badge">${escapeHtml(e.type)}</span>`;
-    left.appendChild(title);
-
-    const meta = document.createElement("div");
-    meta.className = "meta";
-    meta.innerHTML = `
-      <span>📅 ${escapeHtml(e.start)} → ${escapeHtml(e.end)}</span>
-      ${e.note ? `<span>📝 ${escapeHtml(e.note)}</span>` : ""}
+    left.innerHTML = `
+      <div>
+        <strong>${escapeHtml(e.name)}</strong>
+        <span class="badge">${escapeHtml(e.type)}</span>
+      </div>
+      <div class="meta">
+        <span>📅 ${escapeHtml(e.start)} → ${escapeHtml(e.end)}</span>
+        ${e.note ? `<span>📝 ${escapeHtml(e.note)}</span>` : ""}
+      </div>
     `;
-    left.appendChild(meta);
 
     const right = document.createElement("div");
     const del = document.createElement("button");
     del.className = "btn btn-danger";
     del.textContent = "Eliminar";
-    del.addEventListener("click", () => {
-      if(confirm(`¿Eliminar el registro de ${e.name} (${e.start}→${e.end})?`)){
-        state.entries = state.entries.filter(x => x.id !== e.id);
-        saveEntries();
-        rerender();
-      }
-    });
+    del.addEventListener("click", () => deleteEntry(e.id));
     right.appendChild(del);
 
     box.appendChild(left);
     box.appendChild(right);
-
     entriesList.appendChild(box);
   });
 }
@@ -350,22 +334,7 @@ function rerender(){
   renderMonthSummaryAndList();
 }
 
-// --- Security small helper (avoid injecting HTML from notes/names)
-function escapeHtml(str){
-  return String(str)
-    .replaceAll("&","&amp;")
-    .replaceAll("<","&lt;")
-    .replaceAll(">","&gt;")
-    .replaceAll('"',"&quot;")
-    .replaceAll("'","&#039;");
-}
-
-// --- Form handling
-function setAlert(msg, kind="info"){
-  alertBox.textContent = msg || "";
-  alertBox.style.color = kind === "error" ? "rgba(244,63,94,.95)" : "rgba(255,255,255,.72)";
-}
-
+// --- Validation
 function validateEntry({name, start, end, type}){
   if(!name.trim()) return "El nombre es obligatorio.";
   if(!start || !end) return "Debes indicar fecha inicio y fin.";
@@ -375,12 +344,59 @@ function validateEntry({name, start, end, type}){
   return null;
 }
 
-function createId(){
-  // suficientemente único para prototipo
-  return `${Date.now().toString(36)}_${Math.random().toString(36).slice(2,8)}`;
+// --- Data operations
+async function reloadFromServer(){
+  setAlert("");
+  setSync("Cargando…");
+  try{
+    const res = await apiGet();
+    state.entries = Array.isArray(res?.data?.entries) ? res.data.entries : [];
+    state.serverRevision = res.revision || null;
+    state.lastUpdatedAt = res.updatedAt || null;
+
+    setSync(`Última actualización: ${state.lastUpdatedAt || "—"} · Rev: ${state.serverRevision || "—"}`);
+    rerender();
+  }catch(e){
+    setSync("⚠️ No se pudo cargar (revisa Netlify Functions/Blobs).");
+    setAlert(`Error cargando: ${String(e.message || e)}`, "error");
+    rerender();
+  }
 }
 
-form.addEventListener("submit", (ev) => {
+async function saveToServer(){
+  setSaving(true);
+  setSync("Guardando…");
+
+  try{
+    const res = await apiPut(state.entries, state.serverRevision);
+    state.serverRevision = res.revision || state.serverRevision;
+    state.lastUpdatedAt = res.updatedAt || state.lastUpdatedAt;
+    setSync(`Guardado ✓ · ${state.lastUpdatedAt || "—"} · Rev: ${state.serverRevision || "—"}`);
+    setAlert("✅ Guardado en almacenamiento compartido.");
+  }catch(e){
+    // Si hubo conflicto, recargamos y avisamos
+    let msg = String(e.message || e);
+    if(msg.includes("409") || msg.toLowerCase().includes("conflict")){
+      setAlert("⚠️ Alguien guardó al mismo tiempo. Recargando para evitar pisar cambios…", "error");
+      await reloadFromServer();
+    } else {
+      setAlert(`⚠️ No se pudo guardar: ${msg}`, "error");
+      setSync("Error al guardar.");
+    }
+  }finally{
+    setSaving(false);
+  }
+}
+
+async function deleteEntry(id){
+  if(!confirm("¿Eliminar este registro?")) return;
+  state.entries = state.entries.filter(x => x.id !== id);
+  rerender();
+  await saveToServer();
+}
+
+// --- Form submit
+form.addEventListener("submit", async (ev) => {
   ev.preventDefault();
   setAlert("");
 
@@ -402,15 +418,13 @@ form.addEventListener("submit", (ev) => {
   }
 
   state.entries.push(entry);
-  saveEntries();
 
-  // mover vista al mes del inicio
-  const startDate = isoToDate(entry.start);
-  state.monthIndex = startDate.getMonth();
+  // mover vista al mes de inicio
+  state.monthIndex = isoToDate(entry.start).getMonth();
 
   form.reset();
-  setAlert("✅ Registro guardado.");
   rerender();
+  await saveToServer();
 });
 
 // --- Navigation
@@ -418,12 +432,10 @@ btnPrev.addEventListener("click", () => {
   state.monthIndex = (state.monthIndex + 11) % 12;
   rerender();
 });
-
 btnNext.addEventListener("click", () => {
   state.monthIndex = (state.monthIndex + 1) % 12;
   rerender();
 });
-
 btnToday.addEventListener("click", () => {
   state.monthIndex = 0;
   rerender();
@@ -456,7 +468,6 @@ btnExport.addEventListener("click", () => {
   };
   const blob = new Blob([JSON.stringify(payload, null, 2)], { type: "application/json" });
   const url = URL.createObjectURL(blob);
-
   const a = document.createElement("a");
   a.href = url;
   a.download = `timeoff_${YEAR}_export.json`;
@@ -474,51 +485,71 @@ fileImport.addEventListener("change", async (ev) => {
   try{
     const text = await file.text();
     const parsed = JSON.parse(text);
-
     const imported = Array.isArray(parsed) ? parsed : parsed.entries;
     if(!Array.isArray(imported)) throw new Error("Formato inválido.");
 
-    // merge by id
-    const currentById = new Map(state.entries.map(e => [e.id, e]));
-    let added = 0, updated = 0, skipped = 0;
+    // Validar y normalizar
+    const normalized = [];
+    let skipped = 0;
 
     imported.forEach(raw => {
       const e = {
         id: raw.id || createId(),
-        name: safeText(raw.name).trim(),
-        type: safeText(raw.type).trim(),
-        start: safeText(raw.start),
-        end: safeText(raw.end),
-        note: safeText(raw.note || "").trim(),
+        name: String(raw.name || "").trim(),
+        type: String(raw.type || "Otro").trim(),
+        start: String(raw.start || ""),
+        end: String(raw.end || ""),
+        note: String(raw.note || "").trim(),
         createdAt: raw.createdAt || new Date().toISOString()
       };
-
       const err = validateEntry(e);
-      if(err){
-        skipped++;
-        return;
-      }
-
-      if(currentById.has(e.id)){
-        currentById.set(e.id, e);
-        updated++;
-      }else{
-        currentById.set(e.id, e);
-        added++;
-      }
+      if(err){ skipped++; return; }
+      normalized.push(e);
     });
 
-    state.entries = [...currentById.values()];
-    saveEntries();
-    setAlert(`✅ Importado: ${added} nuevos, ${updated} actualizados, ${skipped} omitidos (fuera de 2026 o inválidos).`);
+    if(!confirm(`Esto SOBRESCRIBE los datos del sitio con ${normalized.length} registros. ¿Continuar?`)){
+      return;
+    }
+
+    state.entries = normalized;
     rerender();
-  }catch(err){
-    setAlert(`Error importando JSON: ${err.message || err}`, "error");
+    await saveToServer();
+    setAlert(`✅ Importado y guardado. Omitidos: ${skipped}.`);
+  }catch(e){
+    setAlert(`Error importando JSON: ${String(e.message || e)}`, "error");
   }finally{
     fileImport.value = "";
   }
 });
 
-// --- Clear all
-btnClearAll.addEventListener("click", () => {
-  if(confirm("¿Seguro? Esto bor
+btnClearAll.addEventListener("click", async () => {
+  if(!confirm("¿Seguro? Esto borra TODOS los registros del almacenamiento compartido.")) return;
+  try{
+    await apiClear();
+    await reloadFromServer();
+    setAlert("🗑️ Datos borrados.");
+  }catch(e){
+    setAlert(`No se pudo borrar: ${String(e.message || e)}`, "error");
+  }
+});
+
+btnReload.addEventListener("click", reloadFromServer);
+
+// --- Init
+async function init(){
+  renderWeekdays();
+  state.monthIndex = 0;
+
+  // limit date inputs to 2026
+  const min = `${YEAR}-01-01`;
+  const max = `${YEAR}-12-31`;
+  ["start","end"].forEach(id => {
+    const input = el(id);
+    input.min = min;
+    input.max = max;
+  });
+
+  await reloadFromServer();
+  rerender();
+}
+init();
