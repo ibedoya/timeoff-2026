@@ -3,6 +3,48 @@
 */
 
 const YEAR = 2026;
+const PEOPLE = new Set([
+  "John Alexander Quintero",
+  "Claudia Norela Restrepo",
+  "Jennipher Paola Barrera",
+  "German Alonso Carranza",
+  "Katherine Gutierrez",
+  "Anderson Gallo",
+  "Edgar Gustavo Navarro",
+  "Alexander Rincon",
+  "Camilo Antonio Alfonso",
+  "Jhony Andres Angulo",
+  "Carolina Arcila",
+  "Juan Pablo Barrera",
+  "Camilo Eduardo Bellnavis",
+  "Nathalia Meneses",
+  "Hernan Andres Galeano",
+  "Camilo Andres Moran",
+  "Wilmar Andres Munera",
+  "Andres Felipe Gomez",
+  "Miguel Angel Hernandez",
+  "Ferney Osorio Garcia",
+  "Carlos Andres Loaiza",
+  "Juan Esteban Piedrahita",
+  "Luis Felipe Pinto",
+  "Diego Ernesto Puentes",
+  "Daniel Albeiro Riveros",
+  "Juan Pablo Rios",
+  "John Freddy Saldarriaga",
+  "Carlos Waldo Serna",
+  "Valentina Soto",
+  "Daniel Camilo Vargas",
+  "Jaiver Vargas",
+  "Jeimar Yesid Villota Melo",
+  "Andres Felipe Zapata",
+  "Daniel Agudelo",
+  "Manuel Alejandro Calambés",
+  "Juan Camilo Marin",
+  "Jhon Alexander Alzate",
+  "Andres Puentes",
+  "Julieth Gil"
+]);
+
 
 // --- UI refs
 const el = (id) => document.getElementById(id);

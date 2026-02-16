@@ -34,51 +34,63 @@
         <form id="formTimeOff" autocomplete="off">
           <div class="grid">
             <div class="field">
-  <label for="name">Nombre</label>
-  <select id="name" name="name" required>
-    <option value="" disabled selected hidden>Selecciona una persona…</option>
+              <label for="name">Nombre</label>
 
-    <option value="John Alexander Quintero">John Alexander Quintero</option>
-    <option value="Claudia Norela Restrepo">Claudia Norela Restrepo</option>
-    <option value="Jennipher Paola Barrera">Jennipher Paola Barrera</option>
-    <option value="German Alonso Carranza">German Alonso Carranza</option>
-    <option value="Katherine Gutierrez">Katherine Gutierrez</option>
-    <option value="Anderson Gallo">Anderson Gallo</option>
-    <option value="Edgar Gustavo Navarro">Edgar Gustavo Navarro</option>
-    <option value="Alexander Rincon">Alexander Rincon</option>
-    <option value="Camilo Antonio Alfonso">Camilo Antonio Alfonso</option>
-    <option value="Jhony Andres Angulo">Jhony Andres Angulo</option>
-    <option value="Carolina Arcila">Carolina Arcila</option>
-    <option value="Juan Pablo Barrera">Juan Pablo Barrera</option>
-    <option value="Camilo Eduardo Bellnavis">Camilo Eduardo Bellnavis</option>
-    <option value="Nathalia Meneses">Nathalia Meneses</option>
-    <option value="Hernan Andres Galeano">Hernan Andres Galeano</option>
-    <option value="Camilo Andres Moran">Camilo Andres Moran</option>
-    <option value="Wilmar Andres Munera">Wilmar Andres Munera</option>
-    <option value="Andres Felipe Gomez">Andres Felipe Gomez</option>
-    <option value="Miguel Angel Hernandez">Miguel Angel Hernandez</option>
-    <option value="Ferney Osorio Garcia">Ferney Osorio Garcia</option>
-    <option value="Carlos Andres Loaiza">Carlos Andres Loaiza</option>
-    <option value="Juan Esteban Piedrahita">Juan Esteban Piedrahita</option>
-    <option value="Luis Felipe Pinto">Luis Felipe Pinto</option>
-    <option value="Diego Ernesto Puentes">Diego Ernesto Puentes</option>
-    <option value="Daniel Albeiro Riveros">Daniel Albeiro Riveros</option>
-    <option value="Juan Pablo Rios">Juan Pablo Rios</option>
-    <option value="John Freddy Saldarriaga">John Freddy Saldarriaga</option>
-    <option value="Carlos Waldo Serna">Carlos Waldo Serna</option>
-    <option value="Valentina Soto">Valentina Soto</option>
-    <option value="Daniel Camilo Vargas">Daniel Camilo Vargas</option>
-    <option value="Jaiver Vargas">Jaiver Vargas</option>
-    <option value="Jeimar Yesid Villota Melo">Jeimar Yesid Villota Melo</option>
-    <option value="Andres Felipe Zapata">Andres Felipe Zapata</option>
-    <option value="Daniel Agudelo">Daniel Agudelo</option>
-    <option value="Manuel Alejandro Calambés">Manuel Alejandro Calambés</option>
-    <option value="Juan Camilo Marin">Juan Camilo Marin</option>
-    <option value="Jhon Alexander Alzate">Jhon Alexander Alzate</option>
-    <option value="Andres Puentes">Andres Puentes</option>
-    <option value="Julieth Gil">Julieth Gil</option>
-  </select>
-</div>
+              <!-- Input con buscador -->
+              <input
+                id="name"
+                name="name"
+                type="text"
+                list="peopleList"
+                placeholder="Escribe para buscar…"
+                required
+                autocomplete="off"
+              />
+
+              <!-- Lista para autocompletar / filtrar -->
+              <datalist id="peopleList">
+                <option value="John Alexander Quintero"></option>
+                <option value="Claudia Norela Restrepo"></option>
+                <option value="Jennipher Paola Barrera"></option>
+                <option value="German Alonso Carranza"></option>
+                <option value="Katherine Gutierrez"></option>
+                <option value="Anderson Gallo"></option>
+                <option value="Edgar Gustavo Navarro"></option>
+                <option value="Alexander Rincon"></option>
+                <option value="Camilo Antonio Alfonso"></option>
+                <option value="Jhony Andres Angulo"></option>
+                <option value="Carolina Arcila"></option>
+                <option value="Juan Pablo Barrera"></option>
+                <option value="Camilo Eduardo Bellnavis"></option>
+                <option value="Nathalia Meneses"></option>
+                <option value="Hernan Andres Galeano"></option>
+                <option value="Camilo Andres Moran"></option>
+                <option value="Wilmar Andres Munera"></option>
+                <option value="Andres Felipe Gomez"></option>
+                <option value="Miguel Angel Hernandez"></option>
+                <option value="Ferney Osorio Garcia"></option>
+                <option value="Carlos Andres Loaiza"></option>
+                <option value="Juan Esteban Piedrahita"></option>
+                <option value="Luis Felipe Pinto"></option>
+                <option value="Diego Ernesto Puentes"></option>
+                <option value="Daniel Albeiro Riveros"></option>
+                <option value="Juan Pablo Rios"></option>
+                <option value="John Freddy Saldarriaga"></option>
+                <option value="Carlos Waldo Serna"></option>
+                <option value="Valentina Soto"></option>
+                <option value="Daniel Camilo Vargas"></option>
+                <option value="Jaiver Vargas"></option>
+                <option value="Jeimar Yesid Villota Melo"></option>
+                <option value="Andres Felipe Zapata"></option>
+                <option value="Daniel Agudelo"></option>
+                <option value="Manuel Alejandro Calambés"></option>
+                <option value="Juan Camilo Marin"></option>
+                <option value="Jhon Alexander Alzate"></option>
+                <option value="Andres Puentes"></option>
+                <option value="Julieth Gil"></option>
+              </datalist>
+            </div>
+
 
 
             <div class="field">
