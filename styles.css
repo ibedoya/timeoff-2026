@@ -378,3 +378,51 @@ input:focus, select:focus{
   color: var(--muted);
   font-size: 12px;
 }
+/* ============================= */
+/* FIX DROPDOWN DARK MODE       */
+/* ============================= */
+
+/* Select principal */
+select {
+  background-color: rgba(0, 0, 0, 0.35);
+  color: #ffffff;
+  border: 1px solid rgba(255,255,255,0.15);
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+}
+
+/* Flecha personalizada más visible */
+select {
+  background-image:
+    linear-gradient(45deg, transparent 50%, #38bdf8 50%),
+    linear-gradient(135deg, #38bdf8 50%, transparent 50%);
+  background-position:
+    calc(100% - 18px) calc(50% - 3px),
+    calc(100% - 13px) calc(50% - 3px);
+  background-size: 6px 6px;
+  background-repeat: no-repeat;
+}
+
+/* Opciones internas */
+select option {
+  background-color: #0f1a2e;   /* mismo tono oscuro del panel */
+  color: #ffffff;
+}
+
+/* Opción seleccionada */
+select option:checked {
+  background-color: #7c3aed;
+  color: #ffffff;
+}
+
+/* Hover (en navegadores que lo soportan) */
+select option:hover {
+  background-color: #1e293b;
+}
+
+/* Mejor contraste al enfocar */
+select:focus {
+  border-color: #38bdf8;
+  box-shadow: 0 0 0 3px rgba(56,189,248,.25);
+}
