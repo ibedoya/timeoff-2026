@@ -81,6 +81,8 @@ const btnExport = el("btnExport");
 const fileImport = el("fileImport");
 const btnClearAll = el("btnClearAll");
 const btnAdmin = el("btnAdmin");
+const btnLogout = el("btnLogout");
+
 
 const btnReload = el("btnReload");
 const btnSave = el("btnSave");
@@ -494,6 +496,7 @@ btnToday.addEventListener("click", () => {
   rerender();
 });
 btnAdmin.addEventListener("click", activateAdminMode);
+btnLogout.addEventListener("click", deactivateAdminMode);
 
 
 // --- Filters
@@ -595,9 +598,17 @@ btnClearAll.addEventListener("click", async () => {
 
 btnReload.addEventListener("click", reloadFromServer);
 function applyAdminVisibility() {
-  // Botón borrar todo
   btnClearAll.style.display = isAdmin ? "inline-flex" : "none";
+  btnLogout.style.display = isAdmin ? "inline-flex" : "none";
+  btnAdmin.style.display = isAdmin ? "none" : "inline-flex";
 }
+function deactivateAdminMode() {
+  isAdmin = false;
+  applyAdminVisibility();
+  setAlert("🔓 Saliste del modo administrador.");
+}
+
+
 
 function activateAdminMode() {
   const pin = prompt("Ingresa tu código de administrador:");
@@ -614,7 +625,9 @@ function activateAdminMode() {
 
 // --- Init
 async function init(){
-  applyAdminVisibility();
+isAdmin = false;
+applyAdminVisibility();
+
   renderWeekdays();
   state.monthIndex = 0;
 

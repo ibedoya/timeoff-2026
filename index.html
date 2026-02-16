@@ -19,11 +19,14 @@
     <div class="top-actions">
       <button class="btn btn-ghost" id="btnReload" title="Recargar desde el almacenamiento">Recargar</button>
       <button class="btn btn-ghost" id="btnExport" title="Descargar un JSON con los registros">Exportar JSON</button>
-      <label class="btn btn-ghost filelike" title="Cargar un JSON previamente exportado (sobrescribe)">
-        Importar JSON
+      <label class="btn btn-ghost filelike" title="Cargar un JSON previamente exportado (sobrescribe)">Importar JSON
         <input type="file" id="fileImport" accept="application/json" />
       </label>
       <button class="btn btn-ghost" id="btnAdmin" title="Habilitar acciones de administrador">Modo admin</button>
+      <button class="btn btn-ghost" id="btnLogout" style="display:none;">
+        Salir admin
+      </button>
+
       <button class="btn btn-danger" id="btnClearAll" title="Borrar todo en el almacenamiento" style="display:none;">
         Borrar todo
       </button>
