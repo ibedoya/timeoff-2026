@@ -3,6 +3,9 @@
 */
 
 const YEAR = 2026;
+const ADMIN_PIN = "2711";
+let isAdmin = false;
+
 const PEOPLE = new Set([
   "John Alexander Quintero",
   "Claudia Norela Restrepo",
@@ -77,6 +80,8 @@ const listHint = el("listHint");
 const btnExport = el("btnExport");
 const fileImport = el("fileImport");
 const btnClearAll = el("btnClearAll");
+const btnAdmin = el("btnAdmin");
+
 const btnReload = el("btnReload");
 const btnSave = el("btnSave");
 
@@ -359,10 +364,16 @@ function renderMonthSummaryAndList(){
 
     const right = document.createElement("div");
     const del = document.createElement("button");
-    del.className = "btn btn-danger";
-    del.textContent = "Eliminar";
-    del.addEventListener("click", () => deleteEntry(e.id));
-    right.appendChild(del);
+del.className = "btn btn-danger";
+del.textContent = "Eliminar";
+
+if (!isAdmin) {
+  del.style.display = "none"; // oculto si no eres admin
+}
+
+del.addEventListener("click", () => deleteEntry(e.id));
+right.appendChild(del);
+
 
     box.appendChild(left);
     box.appendChild(right);
@@ -482,6 +493,8 @@ btnToday.addEventListener("click", () => {
   state.monthIndex = 0;
   rerender();
 });
+btnAdmin.addEventListener("click", activateAdminMode);
+
 
 // --- Filters
 filterName.addEventListener("input", () => {
@@ -567,7 +580,12 @@ fileImport.addEventListener("change", async (ev) => {
 btnClearAll.addEventListener("click", async () => {
   if(!confirm("¿Seguro? Esto borra TODOS los registros del almacenamiento compartido.")) return;
   try{
-    await apiClear();
+    await fetch("/.netlify/functions/clear", {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({ pin: ADMIN_PIN })
+    });
+
     await reloadFromServer();
     setAlert("🗑️ Datos borrados.");
   }catch(e){
@@ -576,9 +594,27 @@ btnClearAll.addEventListener("click", async () => {
 });
 
 btnReload.addEventListener("click", reloadFromServer);
+function applyAdminVisibility() {
+  // Botón borrar todo
+  btnClearAll.style.display = isAdmin ? "inline-flex" : "none";
+}
+
+function activateAdminMode() {
+  const pin = prompt("Ingresa tu código de administrador:");
+  if (pin === null) return; // canceló
+
+  if (pin === ADMIN_PIN) {
+    isAdmin = true;
+    applyAdminVisibility();
+    setAlert("🔐 Modo administrador activado.");
+  } else {
+    setAlert("Código incorrecto.", "error");
+  }
+}
 
 // --- Init
 async function init(){
+  applyAdminVisibility();
   renderWeekdays();
   state.monthIndex = 0;
 

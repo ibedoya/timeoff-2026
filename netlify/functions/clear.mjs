@@ -7,6 +7,13 @@ export default async (req) => {
   try {
     if (req.method !== "POST") return json(405, { error: "Method not allowed" });
 
+    const adminPin = process.env.ADMIN_PIN;
+    const body = await req.json().catch(() => null);
+
+    if (!body || body.pin !== adminPin) {
+      return json(401, { error: "No autorizado" });
+    }
+
     const store = getStore(STORE_NAME);
     await store.delete(KEY);
 
@@ -22,3 +29,4 @@ function json(statusCode, body) {
     headers: { "content-type": "application/json; charset=utf-8" }
   });
 }
+
