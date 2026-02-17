@@ -45,7 +45,12 @@ const PEOPLE = new Set([
   "Juan Camilo Marin",
   "Jhon Alexander Alzate",
   "Andres Puentes",
-  "Julieth Gil"
+  "Julieth Gil",
+  "Yulieth Tamayo",
+  "Mariana Vasco",
+  "Jenny Diaz",
+  "Kelly López",
+  "Cindy Jaramillo"
 ]);
 
 
