@@ -46,6 +46,7 @@ const PEOPLE = new Set([
   "Jhon Alexander Alzate",
   "Andres Puentes",
   "Julieth Gil",
+  "Daniel Stiven Londoño",
   "Yulieth Tamayo",
   "Mariana Vasco",
   "Jenny Diaz",
